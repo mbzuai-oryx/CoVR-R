@@ -1,0 +1,31 @@
+model_name: "Qwen/Qwen3-VL-8B-Instruct"
+attn_implementation: "sdpa"
+max_new_tokens: 256
+mixed_precision: true
+
+video_dir: "./videos"
+label_path: "./labels/dense-webvid8m-covr_test.csv"
+prompt_style: "dense"
+sample_fps: 1.0
+limit: 2555
+
+embedding_source: "vision"
+embedding_pooling: "mean"
+normalize_embeddings: true
+embedding_store: "artifacts/dense_test_embeddings.npz"
+output_npz_path: "artifacts/dense_test_embeddings.npz"
+save_raw_hidden: true
+weighting_scheme: "original"
+
+temperature: 0.7
+top_p: 0.9
+top_k: 50
+do_sample: true
+
+reasoning_strategy: "single_stage"
+
+parallelism: "dp"
+batch_size: 1
+num_workers: 12
+artifact_dir: "./artifacts/dense"
+text_log_path: "artifacts/dense/text_log.json"

@@ -1,0 +1,35 @@
+model_name: "Qwen/Qwen3-VL-8B-Instruct"
+attn_implementation: "sdpa"
+max_new_tokens: 256
+mixed_precision: true
+
+video_dir: "./videos"
+label_path: "./labels/reasoning-webvid8m-covr_test.json"
+prompt_style: "reasoning"
+sample_fps: 1.0
+
+embedding_source: "penultimate"
+embedding_pooling: "weighted_mean"
+normalize_embeddings: true
+embedding_store: "artifacts/reasoning_test_embeddings.npz"
+output_npz_path: "artifacts/reasoning_test_embeddings.npz"
+save_raw_hidden: true
+weighting_scheme: "original"
+
+temperature: 0.7
+top_p: 0.9
+top_k: 50
+do_sample: true
+
+reasoning_strategy: "two_stage"
+reasoning_tokens: 128
+self_consistency_samples: 5
+self_consistency_temperature: 0.9
+synthesis_temperature: 0.6
+description_temperature: 0.7
+
+parallelism: "dp"
+batch_size: 1
+num_workers: 12
+artifact_dir: "./artifacts/reasoning"
+text_log_path: "artifacts/reasoning/text_log.json"
