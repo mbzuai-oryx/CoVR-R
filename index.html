@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CoVR-R: Reason-Aware Composed Video Retrieval</title>
+  <meta name="description" content="CoVR-R introduces reasoning-aware composed video retrieval via a two-stage zero-shot framework powered by Qwen3-VL." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:    #2563eb;
+      --primary-dk: #1d4ed8;
+      --accent:     #7c3aed;
+      --bg:         #0f172a;
+      --bg2:        #1e293b;
+      --bg3:        #263148;
+      --surface:    #1e293b;
+      --border:     #334155;
+      --text:       #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-light: #cbd5e1;
+      --green:      #22c55e;
+      --radius:     12px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 16px;
+      overflow-x: hidden;
+    }
+
+    /* ─── Scrollbar ─────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 99px; }
+
+    /* ─── Nav ───────────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand {
+      font-weight: 700; font-size: 1rem;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none; font-size: .875rem;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ─── Hero ──────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 6rem 1.5rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(37,99,235,.35) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 85% 80%, rgba(124,58,237,.25) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-grid {
+      position: absolute; inset: 0; opacity: .05;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; max-width: 900px; }
+
+    .venue-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: rgba(37,99,235,.15);
+      border: 1px solid rgba(37,99,235,.4);
+      border-radius: 99px;
+      padding: .35rem 1rem;
+      font-size: .8rem; font-weight: 600;
+      color: #93c5fd;
+      letter-spacing: .04em;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+    }
+    .venue-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+
+    h1.title {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      letter-spacing: -.02em;
+    }
+    h1.title span {
+      background: linear-gradient(135deg, #60a5fa, var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 1.1rem; color: var(--text-muted);
+      max-width: 620px; margin: 0 auto 2rem;
+    }
+
+    /* Authors */
+    .authors {
+      font-size: .9rem; color: var(--text-light);
+      margin-bottom: .75rem; line-height: 1.8;
+    }
+    .authors a {
+      color: #93c5fd; text-decoration: none; font-weight: 500;
+      transition: color .2s;
+    }
+    .authors a:hover { color: #fff; }
+    .eq { font-size: .75rem; color: var(--text-muted); }
+    .affiliation {
+      font-size: .85rem; color: var(--text-muted); margin-bottom: 2rem;
+    }
+
+    /* Action buttons */
+    .action-row {
+      display: flex; flex-wrap: wrap; gap: .75rem;
+      justify-content: center; margin-bottom: 3rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .6rem 1.4rem;
+      border-radius: 8px;
+      font-size: .875rem; font-weight: 600;
+      text-decoration: none;
+      transition: transform .15s, box-shadow .15s, background .15s;
+      cursor: pointer; border: none;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 15px rgba(37,99,235,.4); }
+    .btn-primary:hover { background: var(--primary-dk); box-shadow: 0 6px 20px rgba(37,99,235,.5); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--bg2); border-color: var(--primary); color: var(--primary); }
+    .btn-purple { background: var(--accent); color: #fff; box-shadow: 0 4px 15px rgba(124,58,237,.4); }
+    .btn-purple:hover { background: #6d28d9; }
+
+    /* Teaser stats */
+    .stat-row {
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      justify-content: center;
+    }
+    .stat-card {
+      background: rgba(30,41,59,.7);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.5rem;
+      text-align: center; min-width: 120px;
+    }
+    .stat-card .stat-num {
+      font-size: 1.75rem; font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-card .stat-lbl { font-size: .75rem; color: var(--text-muted); margin-top: .25rem; }
+
+    /* ─── Sections ──────────────────────────────────────────────── */
+    section { padding: 6rem 1.5rem; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .section-label {
+      font-size: .75rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--primary);
+      margin-bottom: .5rem;
+    }
+    h2.sec-title {
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 800; margin-bottom: 1rem; letter-spacing: -.015em;
+    }
+    .sec-divider {
+      width: 50px; height: 3px; border-radius: 99px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      margin: 0 0 2rem;
+    }
+
+    /* Abstract */
+    #abstract { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .abstract-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem 2.5rem;
+      font-size: 1rem; line-height: 1.85;
+      color: var(--text-light);
+      box-shadow: 0 4px 30px rgba(0,0,0,.3);
+    }
+    .abstract-card p + p { margin-top: 1rem; }
+
+    /* Overview cards */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: border-color .25s, transform .2s, box-shadow .2s;
+    }
+    .card:hover {
+      border-color: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .card-icon {
+      font-size: 1.6rem; margin-bottom: .75rem;
+    }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
+    .card p { font-size: .875rem; color: var(--text-muted); line-height: 1.65; }
+
+    /* Figure block */
+    .fig-block { margin: 3rem 0; text-align: center; }
+    .fig-block img {
+      width: 100%; max-width: 880px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+    .fig-caption {
+      margin-top: 1rem; font-size: .875rem; color: var(--text-muted);
+      max-width: 720px; margin-left: auto; margin-right: auto; line-height: 1.65;
+    }
+    .fig-caption strong { color: var(--text-light); }
+
+    /* Method pipeline */
+    #method { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .pipeline {
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      margin: 2.5rem 0; align-items: stretch;
+    }
+    .stage {
+      flex: 1; min-width: 240px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      position: relative;
+      transition: border-color .25s;
+    }
+    .stage:hover { border-color: var(--primary); }
+    .stage-num {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff; font-size: .7rem; font-weight: 700;
+      padding: .2rem .6rem; border-radius: 4px;
+      letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: .75rem;
+    }
+    .stage h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: .6rem; }
+    .stage ul { padding-left: 1.2rem; color: var(--text-muted); font-size: .875rem; }
+    .stage ul li { margin-bottom: .4rem; }
+    .arrow {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; color: var(--primary); padding: 0 .25rem;
+    }
+
+    /* Reasoning trace block */
+    .trace-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--primary);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .825rem;
+      color: #93c5fd;
+      margin: 1.5rem 0;
+      line-height: 1.8;
+    }
+    .trace-box .key { color: #a78bfa; }
+    .trace-box .val { color: #86efac; }
+
+    /* Results & Tables */
+    #results { background: var(--bg); }
+    .results-tabs {
+      display: flex; gap: .5rem; margin-bottom: 2rem; flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: .5rem 1.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: .875rem; font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: var(--primary);
+      color: #fff; border-color: var(--primary);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .result-highlight {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem; margin-bottom: 2.5rem;
+    }
+    .rh-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem; text-align: center;
+      transition: border-color .2s;
+    }
+    .rh-card:hover { border-color: var(--green); }
+    .rh-card .rh-val {
+      font-size: 2rem; font-weight: 800;
+      color: var(--green);
+    }
+    .rh-card .rh-delta {
+      font-size: .8rem; color: var(--green); font-weight: 600;
+    }
+    .rh-card .rh-label { font-size: .75rem; color: var(--text-muted); margin-top: .3rem; }
+
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: .875rem;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    thead tr { background: var(--bg3); }
+    th {
+      padding: .9rem 1rem; text-align: left;
+      font-weight: 700; color: var(--text-light);
+      font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: .8rem 1rem;
+      border-bottom: 1px solid rgba(51,65,85,.5);
+      color: var(--text-light);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr.best { background: rgba(37,99,235,.12); }
+    tr.best td { color: #93c5fd; font-weight: 600; }
+    .badge-best {
+      display: inline-block;
+      background: rgba(34,197,94,.15); color: #86efac;
+      border: 1px solid rgba(34,197,94,.4);
+      border-radius: 4px; font-size: .7rem; font-weight: 700;
+      padding: .1rem .45rem; margin-left: .4rem;
+      vertical-align: middle;
+    }
+
+    /* Ablation */
+    #ablations { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .abl-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem; margin-top: 2rem;
+    }
+    .abl-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+    .abl-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: #a78bfa; }
+
+    /* Key Insights */
+    .insights-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem; margin-top: 2rem;
+    }
+    .insight {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem;
+      border-top: 3px solid var(--primary);
+    }
+    .insight h4 { font-size: .9rem; font-weight: 700; margin-bottom: .5rem; }
+    .insight p { font-size: .825rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Citation */
+    #citation { background: var(--bg3); border-top: 1px solid var(--border); }
+    .citation-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .82rem;
+      color: #94a3b8;
+      line-height: 2;
+      position: relative;
+      overflow: auto;
+    }
+    .citation-box .bibtex-key { color: #60a5fa; }
+    .citation-box .bibtex-field { color: #a78bfa; }
+    .citation-box .bibtex-val { color: #86efac; }
+    .copy-btn {
+      position: absolute; top: .75rem; right: .75rem;
+      background: var(--bg2); border: 1px solid var(--border);
+      color: var(--text-muted); border-radius: 6px;
+      padding: .3rem .75rem; font-size: .75rem; cursor: pointer;
+      transition: all .2s;
+    }
+    .copy-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* Footer */
+    footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+      color: var(--text-muted);
+      font-size: .85rem;
+    }
+    footer a { color: #93c5fd; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* Responsive nav toggle */
+    .nav-toggle { display: none; background: none; border: none; color: var(--text); font-size: 1.2rem; cursor: pointer; }
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-toggle { display: block; }
+      .nav-links.open { display: flex; flex-direction: column; gap: 0; position: absolute; top: 56px; left: 0; right: 0; background: var(--bg); border-bottom: 1px solid var(--border); padding: 1rem 2rem; }
+      .nav-links.open a { padding: .6rem 0; border-bottom: 1px solid var(--border); font-size: .95rem; }
+      .arrow { display: none; }
+    }
+
+    /* Animations */
+    .fade-up {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Navigation ───────────────────────────────────────────── -->
+  <nav>
+    <div class="nav-brand">CoVR-R</div>
+    <button class="nav-toggle" onclick="this.nextElementSibling.classList.toggle('open')"><i class="fa fa-bars"></i></button>
+    <ul class="nav-links">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#benchmark">Benchmark</a></li>
+      <li><a href="#method">Method</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#ablations">Ablations</a></li>
+      <li><a href="#citation">Citation</a></li>
+    </ul>
+  </nav>
+
+  <!-- ─── Hero ─────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-inner fade-up">
+
+      <div class="venue-badge">
+        <span class="dot"></span>
+        CVPR 2026 Findings
+      </div>
+
+      <h1 class="title">CoVR-R: <span>Reason-Aware</span><br>Composed Video Retrieval</h1>
+
+      <p class="subtitle">
+        Moving beyond keyword matching — video retrieval that understands the
+        <em>implied consequences</em> of textual edits through structured visual reasoning.
+      </p>
+
+      <div class="authors">
+        <a href="https://omkarthawakar.github.io">Omkar Thawakar</a><sup>*</sup>,&nbsp;
+        <a href="https://scholar.google.com/citations?user=k3euI0sAAAAJ&hl=en">Dmitry Demidov</a><sup>*</sup>,&nbsp;
+        <a href="https://scholar.google.com/citations?user=UOB0uKgAAAAJ&hl=en">Vaishnav Potlapalli</a><sup>*</sup>,&nbsp;
+        <a href="https://scholar.google.com/citations?user=Yg5L4UkAAAAJ&hl=en">Sai Prasanna Teja Reddy Bogireddy</a><sup>*</sup>,<br>
+        <a href="https://scholar.google.com/citations?user=9C5TEbkAAAAJ&hl=en">Viswanatha Reddy Gajjala</a><sup>*</sup>,&nbsp;
+        Alaa Mostafa Lasheen,&nbsp;
+        <a href="https://scholar.google.com/citations?user=_KlvMVoAAAAJ&hl=en">Rao Muhammad Anwer</a>,&nbsp;
+        <a href="https://scholar.google.com/citations?user=zvaeYnUAAAAJ&hl=en">Fahad Khan</a>
+        <br><span class="eq"><sup>*</sup> Equal Contribution</span>
+      </div>
+
+      <p class="affiliation">
+        Mohamed bin Zayed University of AI &nbsp;·&nbsp; University of Chicago &nbsp;·&nbsp; Amazon &nbsp;·&nbsp; Linköping University
+      </p>
+
+      <div class="action-row">
+        <a href="#" class="btn btn-primary"><i class="fa fa-file-pdf"></i> Paper</a>
+        <a href="https://github.com/omkarthawakar/CoVR-R" class="btn btn-outline"><i class="fab fa-github"></i> Code</a>
+        <a href="#benchmark" class="btn btn-purple"><i class="fa fa-database"></i> Benchmark</a>
+        <a href="#results" class="btn btn-outline"><i class="fa fa-chart-bar"></i> Results</a>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-num">2,800</div>
+          <div class="stat-lbl">Curated Triplets</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">+16%</div>
+          <div class="stat-lbl">Relative R@1 Gain</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">0-shot</div>
+          <div class="stat-lbl">No Fine-tuning</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">5</div>
+          <div class="stat-lbl">Reasoning Dimensions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">49.88</div>
+          <div class="stat-lbl">R@1 (CoVR-R)</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── Abstract ─────────────────────────────────────────────── -->
+  <section id="overview">
+    <div class="container">
+      <p class="section-label">Abstract</p>
+      <h2 class="sec-title">Retrieval That Understands Consequences</h2>
+      <div class="sec-divider"></div>
+
+      <div class="abstract-card fade-up">
+        <p>
+          <strong>Composed Video Retrieval (CoVR)</strong> targets a target video given a reference video
+          and a textual modification edit. Most prior work treats the edit as a set of literal
+          keyword constraints and matches videos by surface-level overlap. However, real-world
+          edits imply <em>after-effects</em> — causal, temporal, and cinematographic consequences
+          that are never explicitly stated.
+        </p>
+        <p>
+          For example, the edit <em>"change typing to frustration"</em> implies clenched fists and
+          closing the laptop. <em>"Make it a close-up"</em> implies tighter framing and shorter duration.
+          <em>"Turn raw ingredients into cooked"</em> implies visible state transitions from raw to browned.
+        </p>
+        <p>
+          We demonstrate that successful CoVR requires <strong>reasoning about these implied consequences</strong>.
+          To this end, we introduce <strong>CoVR-R</strong>, a reasoning-aware benchmark of 2,800 curated
+          triplets with structured annotations, and a two-stage zero-shot framework — <strong>Reason-Then-Retrieve</strong>
+          — powered by the Qwen3-VL multimodal model. Our approach achieves a +16% relative R@1 improvement
+          over the best prior baseline without any task-specific fine-tuning.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Why Reasoning ─────────────────────────────────────────── -->
+  <section id="motivation" style="padding-top: 3rem;">
+    <div class="container">
+      <p class="section-label">Motivation</p>
+      <h2 class="sec-title">Why Reasoning is Necessary</h2>
+      <div class="sec-divider"></div>
+
+      <div class="fig-block fade-up">
+        <img src="assets/figure1.png" alt="Figure 1: Examples showing after-effects" />
+        <p class="fig-caption">
+          <strong>Figure 1.</strong> Examples where retrieval success depends on understanding
+          after-effects — object state changes, temporal phase ordering, and cinematographic scale —
+          rather than simple keyword matching. Standard retrieval systems fail on these cases.
+        </p>
+      </div>
+
+      <div class="cards-grid fade-up">
+        <div class="card">
+          <div class="card-icon">🔄</div>
+          <h3>Object State Transitions</h3>
+          <p>Edits like "cook the ingredients" require modeling state changes from <em>raw → browned</em>, which is visually implicit and semantically rich.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">⏱</div>
+          <h3>Temporal Phase Progression</h3>
+          <p>Understanding the order of events in a video — not just what appears but when and how it transitions — is critical for temporal edits.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🎥</div>
+          <h3>Cinematographic Reasoning</h3>
+          <p>Changes in shot scale, camera motion, and framing carry implied visual consequences that keyword-based systems entirely miss.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🧠</div>
+          <h3>Cause-Effect Chains</h3>
+          <p>Emotional or behavioral edits (e.g. "frustration") trigger cascaded visual effects that must be reasoned about explicitly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Benchmark ─────────────────────────────────────────────── -->
+  <section id="benchmark" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <p class="section-label">Dataset</p>
+      <h2 class="sec-title">The CoVR-R Benchmark</h2>
+      <div class="sec-divider"></div>
+
+      <div class="cards-grid fade-up" style="margin-bottom: 3rem;">
+        <div class="card">
+          <div class="card-icon">📦</div>
+          <h3>2,800 Curated Triplets</h3>
+          <p>Each triplet consists of a reference video, a textual edit, and a target video — carefully curated to require reasoning, not keyword matching.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">⚔️</div>
+          <h3>Hard Distractors</h3>
+          <p>Distractors are intentionally designed to defeat keyword-level matching, forcing models to reason about implied visual consequences.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📝</div>
+          <h3>Structured Reasoning Traces</h3>
+          <p>Every triplet includes a canonicalized reasoning trace across five dimensions: states, actions, scene, camera, and tempo.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🎯</div>
+          <h3>Multi-Dimensional Focus</h3>
+          <p>Covers temporal dependency, state transitions, cinematographic consequences, and implicit cause-effect reasoning in a single unified framework.</p>
+        </div>
+      </div>
+
+      <div class="fig-block fade-up">
+        <img src="assets/figure2.png" alt="Figure 2: CoVR-R benchmark triplets" />
+        <p class="fig-caption">
+          <strong>Figure 2.</strong> Sample triplets from the CoVR-R benchmark with their associated
+          structured reasoning traces. Each trace captures five reasoning dimensions that are
+          necessary to identify the correct target video.
+        </p>
+      </div>
+
+      <div class="fade-up" style="margin-top: 2.5rem;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Structured Reasoning Annotation Format</h3>
+        <div class="trace-box">
+          <span class="key">R</span> = {<br>
+          &nbsp;&nbsp;<span class="key">states</span>: <span class="val">"raw ingredients → browned/cooked"</span>,<br>
+          &nbsp;&nbsp;<span class="key">actions</span>: <span class="val">"stirring → plating"</span>,<br>
+          &nbsp;&nbsp;<span class="key">scene</span>: <span class="val">"kitchen counter with visible steam"</span>,<br>
+          &nbsp;&nbsp;<span class="key">camera</span>: <span class="val">"static overhead → slight tilt for reveal"</span>,<br>
+          &nbsp;&nbsp;<span class="key">tempo</span>: <span class="val">"slow-paced with time-lapse acceleration"</span><br>
+          }
+        </div>
+        <p style="font-size: .85rem; color: var(--text-muted);">
+          Example reasoning trace for the edit <em>"turn raw ingredients into cooked."</em>
+          These five dimensions guide the retrieval model towards the correct target.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Method ────────────────────────────────────────────────── -->
+  <section id="method">
+    <div class="container">
+      <p class="section-label">Methodology</p>
+      <h2 class="sec-title">Reason–Then–Retrieve Framework</h2>
+      <div class="sec-divider"></div>
+
+      <p style="color: var(--text-muted); max-width: 680px; margin-bottom: 2.5rem;">
+        A two-stage zero-shot architecture powered by a frozen <strong>Qwen3-VL</strong> multimodal language model.
+        No task-specific fine-tuning. No captions required. Fully zero-shot.
+      </p>
+
+      <div class="fig-block fade-up">
+        <img src="assets/figure3.png" alt="Figure 3: Reason-Then-Retrieve pipeline" />
+        <p class="fig-caption">
+          <strong>Figure 3.</strong> Overview of the Reason–Then–Retrieve architecture. Given a reference
+          video and a textual edit, Stage 1 generates a structured reasoning trace via Qwen3-VL.
+          Stage 2 uses the trace to produce a hypothetical target description, extracts
+          importance-weighted embeddings, and retrieves the best-matching video from the gallery.
+        </p>
+      </div>
+
+      <div class="pipeline fade-up">
+        <div class="stage">
+          <span class="stage-num">Input</span>
+          <h3>Reference + Edit</h3>
+          <ul>
+            <li>Reference video <code>V_r</code></li>
+            <li>Textual modification <code>E</code></li>
+            <li>Processed by frozen Qwen3-VL</li>
+          </ul>
+        </div>
+        <div class="arrow"><i class="fa fa-arrow-right"></i></div>
+        <div class="stage">
+          <span class="stage-num">Stage 1</span>
+          <h3>After-Effect Reasoning</h3>
+          <ul>
+            <li>Structured trace generation</li>
+            <li>Object state reasoning</li>
+            <li>Action phase prediction</li>
+            <li>Scene &amp; camera forecasting</li>
+            <li>Temporal pacing analysis</li>
+          </ul>
+        </div>
+        <div class="arrow"><i class="fa fa-arrow-right"></i></div>
+        <div class="stage">
+          <span class="stage-num">Stage 2</span>
+          <h3>Target Description &amp; Retrieval</h3>
+          <ul>
+            <li>Hypothetical post-edit description</li>
+            <li>Token embedding extraction</li>
+            <li>Importance-weighted pooling</li>
+            <li>Cosine similarity against gallery</li>
+          </ul>
+        </div>
+        <div class="arrow"><i class="fa fa-arrow-right"></i></div>
+        <div class="stage">
+          <span class="stage-num">Output</span>
+          <h3>Retrieved Target Video</h3>
+          <ul>
+            <li>Top-k ranked results</li>
+            <li>Evaluated via R@1/5/10/50</li>
+            <li>Zero-shot, caption-free</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="fade-up" style="margin-top: 2.5rem;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; color: #a78bfa;">Importance-Weighted Pooling</h3>
+        <p style="color: var(--text-muted); font-size: .9rem; max-width: 680px; line-height: 1.75; margin-bottom: 1rem;">
+          Standard mean pooling treats all token embeddings equally. We instead assign weights
+          to tokens based on their importance to the reasoning trace, significantly improving
+          embedding quality for composed retrieval.
+        </p>
+        <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-top: 1rem;">
+          <div class="card" style="text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--green);">49.88</div>
+            <div style="font-size: .75rem; color: var(--text-muted);">Importance-Weighted (Ours)</div>
+          </div>
+          <div class="card" style="text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: 800; color: #f59e0b;">44.87</div>
+            <div style="font-size: .75rem; color: var(--text-muted);">Mean Pooling</div>
+          </div>
+          <div class="card" style="text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: 800; color: #f59e0b;">35.95</div>
+            <div style="font-size: .75rem; color: var(--text-muted);">Max Pooling</div>
+          </div>
+          <div class="card" style="text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: 800; color: #ef4444;">1.51</div>
+            <div style="font-size: .75rem; color: var(--text-muted);">Last Token</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Results ───────────────────────────────────────────────── -->
+  <section id="results" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <p class="section-label">Evaluation</p>
+      <h2 class="sec-title">State-of-the-Art Results</h2>
+      <div class="sec-divider"></div>
+
+      <div class="results-tabs fade-up">
+        <button class="tab-btn active" onclick="switchTab(event, 'tab-covr')">CoVR-R Benchmark</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-dense')">Dense-WebVid-CoVR</button>
+      </div>
+
+      <!-- CoVR-R Tab -->
+      <div id="tab-covr" class="tab-panel active fade-up">
+        <div class="result-highlight">
+          <div class="rh-card">
+            <div class="rh-val">49.88</div>
+            <div class="rh-delta">↑ +16% vs. BLIP baseline</div>
+            <div class="rh-label">R@1 with Reasoning</div>
+          </div>
+          <div class="rh-card">
+            <div class="rh-val">66.99</div>
+            <div class="rh-delta">↑ +9.32 absolute</div>
+            <div class="rh-label">R@5 with Reasoning</div>
+          </div>
+          <div class="rh-card">
+            <div class="rh-val">72.97</div>
+            <div class="rh-delta">↑ +8.49 absolute</div>
+            <div class="rh-label">R@10 with Reasoning</div>
+          </div>
+          <div class="rh-card">
+            <div class="rh-val">8.31</div>
+            <div class="rh-delta">vs. 6.42 baseline</div>
+            <div class="rh-label">Reasoning Score</div>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>R@1</th>
+                <th>R@5</th>
+                <th>R@10</th>
+                <th>R@50</th>
+                <th>Reasoning Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Best BLIP Baseline</td>
+                <td>37.90</td>
+                <td>57.67</td>
+                <td>64.48</td>
+                <td>79.47</td>
+                <td>6.42</td>
+              </tr>
+              <tr>
+                <td>Ours (no explicit reasoning)</td>
+                <td>44.32</td>
+                <td>61.91</td>
+                <td>67.33</td>
+                <td>79.90</td>
+                <td>–</td>
+              </tr>
+              <tr class="best">
+                <td><strong>Ours + Reasoning</strong> <span class="badge-best">BEST</span></td>
+                <td><strong>49.88</strong></td>
+                <td><strong>66.99</strong></td>
+                <td><strong>72.97</strong></td>
+                <td><strong>85.14</strong></td>
+                <td><strong>8.31</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Dense WebVid Tab -->
+      <div id="tab-dense" class="tab-panel fade-up">
+        <div class="result-highlight">
+          <div class="rh-card">
+            <div class="rh-val">61.21</div>
+            <div class="rh-delta">↑ +13.13 absolute vs BSE-CoVR</div>
+            <div class="rh-label">R@1 (Ours + R)</div>
+          </div>
+          <div class="rh-card">
+            <div class="rh-val">83.40</div>
+            <div class="rh-delta">↑ +10.04 absolute</div>
+            <div class="rh-label">R@5 (Ours + R)</div>
+          </div>
+          <div class="rh-card">
+            <div class="rh-val">89.39</div>
+            <div class="rh-delta">↑ +8.33 absolute</div>
+            <div class="rh-label">R@10 (Ours + R)</div>
+          </div>
+          <div class="rh-card">
+            <div class="rh-val">97.61</div>
+            <div class="rh-delta">↑ +3.83 absolute</div>
+            <div class="rh-label">R@50 (Ours + R)</div>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>R@1</th>
+                <th>R@5</th>
+                <th>R@10</th>
+                <th>R@50</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>BSE-CoVR</td>
+                <td>48.08</td>
+                <td>73.36</td>
+                <td>81.06</td>
+                <td>93.78</td>
+              </tr>
+              <tr>
+                <td>Ours</td>
+                <td>58.19</td>
+                <td>80.50</td>
+                <td>86.92</td>
+                <td>97.14</td>
+              </tr>
+              <tr class="best">
+                <td><strong>Ours + R</strong> <span class="badge-best">BEST</span></td>
+                <td><strong>61.21</strong></td>
+                <td><strong>83.40</strong></td>
+                <td><strong>89.39</strong></td>
+                <td><strong>97.61</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Ablations ─────────────────────────────────────────────── -->
+  <section id="ablations">
+    <div class="container">
+      <p class="section-label">Analysis</p>
+      <h2 class="sec-title">Key Ablations</h2>
+      <div class="sec-divider"></div>
+
+      <div class="abl-grid fade-up">
+        <!-- Model Scaling -->
+        <div class="abl-card">
+          <h3>🔹 Model Scaling (CoVR-R)</h3>
+          <p style="font-size: .8rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Performance scales with the backbone's reasoning capability.
+          </p>
+          <table>
+            <thead>
+              <tr><th>Backbone</th><th>R@1</th><th>Reasoning Score</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Qwen3-VL-4B</td><td>43.98</td><td>7.95</td></tr>
+              <tr><td>Qwen3-VL-8B</td><td>49.88</td><td>8.31</td></tr>
+              <tr class="best"><td><strong>Qwen3-VL-72B</strong></td><td><strong>55.48</strong></td><td><strong>9.05</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pooling Strategy -->
+        <div class="abl-card">
+          <h3>🔹 Pooling Strategy</h3>
+          <p style="font-size: .8rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Importance-weighted pooling significantly outperforms all standard aggregation strategies.
+          </p>
+          <table>
+            <thead>
+              <tr><th>Pooling Method</th><th>R@1</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Mean</td><td>44.87</td></tr>
+              <tr><td>Max</td><td>35.95</td></tr>
+              <tr><td>Last Token</td><td>1.51</td></tr>
+              <tr class="best"><td><strong>Importance-Weighted (Ours)</strong></td><td><strong>49.88</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Key Takeaways ─────────────────────────────────────────── -->
+  <section style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 4rem 1.5rem;">
+    <div class="container">
+      <p class="section-label">Impact</p>
+      <h2 class="sec-title">Why This Matters</h2>
+      <div class="sec-divider"></div>
+
+      <p style="color: var(--text-muted); max-width: 620px; margin-bottom: 2rem;">
+        CoVR-R fundamentally reframes composed video retrieval from triplet matching to
+        <strong>consequence modeling</strong>.
+      </p>
+
+      <div class="insights-grid fade-up">
+        <div class="insight">
+          <h4>Keyword Matching is Insufficient</h4>
+          <p>Real-world edits trigger visual effects far beyond the literal words. Surface-level matching systematically fails.</p>
+        </div>
+        <div class="insight" style="border-top-color: var(--accent);">
+          <h4>Temporal Reasoning is Critical</h4>
+          <p>Understanding the before-and-after state of a scene — not just what's present — determines retrieval success.</p>
+        </div>
+        <div class="insight" style="border-top-color: var(--green);">
+          <h4>Cinematography Matters</h4>
+          <p>Shot scale, camera motion, and framing are semantically meaningful and must be modeled for accurate retrieval.</p>
+        </div>
+        <div class="insight" style="border-top-color: #f59e0b;">
+          <h4>LMM Reasoning Drives Retrieval</h4>
+          <p>General-purpose large multimodal model reasoning can successfully replace task-specific retrieval training.</p>
+        </div>
+        <div class="insight" style="border-top-color: #ef4444;">
+          <h4>State Transitions Must Be Modeled</h4>
+          <p>Object and scene state change modeling is a core competency for next-generation video retrieval systems.</p>
+        </div>
+        <div class="insight" style="border-top-color: #06b6d4;">
+          <h4>Zero-Shot Scalability</h4>
+          <p>Our framework needs no labeled retrieval data — it scales with model capability and generalizes broadly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Quick Start ───────────────────────────────────────────── -->
+  <section id="code" style="padding: 5rem 1.5rem;">
+    <div class="container">
+      <p class="section-label">Getting Started</p>
+      <h2 class="sec-title">Quick Start</h2>
+      <div class="sec-divider"></div>
+
+      <p style="color: var(--text-muted); margin-bottom: 2rem; max-width: 600px;">
+        Install dependencies and run evaluation on any of the provided configurations.
+      </p>
+
+      <div class="fade-up">
+        <h3 style="font-size: .9rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem;">Install</h3>
+        <div class="trace-box" style="color: #e2e8f0; margin-bottom: 2rem;">
+          pip install -r requirements.txt
+        </div>
+
+        <h3 style="font-size: .9rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem;">CoVR-R (Reasoning-Based Retrieval)</h3>
+        <div class="trace-box" style="color: #e2e8f0; margin-bottom: 2rem;">
+          <span style="color: #64748b;"># Generate embeddings</span><br>
+          python generate_embeddings.py --config configs/reasoning_webvid8m.yaml<br><br>
+          <span style="color: #64748b;"># Evaluate</span><br>
+          python evaluate.py --config configs/reasoning_webvid8m.yaml<br><br>
+          <span style="color: #64748b;"># With self-consistency reasoning</span><br>
+          python evaluate.py --config configs/reasoning_webvid8m.yaml --reasoning_strategy self_consistency<br><br>
+          <span style="color: #64748b;"># Single-stage retrieval</span><br>
+          python evaluate.py --config configs/reasoning_webvid8m.yaml --reasoning_strategy single_stage
+        </div>
+
+        <h3 style="font-size: .9rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem;">WebVid8M &amp; Dense WebVid8M</h3>
+        <div class="trace-box" style="color: #e2e8f0;">
+          <span style="color: #64748b;"># WebVid8M</span><br>
+          python generate_embeddings.py --config configs/webvid8m.yaml<br>
+          python evaluate.py --config configs/webvid8m.yaml<br><br>
+          <span style="color: #64748b;"># Dense WebVid8M</span><br>
+          python generate_embeddings.py --config configs/dense_webvid8m.yaml<br>
+          python evaluate.py --config configs/dense_webvid8m.yaml
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Citation ─────────────────────────────────────────────── -->
+  <section id="citation">
+    <div class="container">
+      <p class="section-label">Reference</p>
+      <h2 class="sec-title">Citation</h2>
+      <div class="sec-divider"></div>
+
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+        If you find CoVR-R useful in your research, please cite our paper:
+      </p>
+
+      <div class="citation-box fade-up" id="bibtex-box">
+        <button class="copy-btn" onclick="copyBibtex()"><i class="fa fa-copy"></i> Copy</button>
+<span class="bibtex-key">@inproceedings</span>{thawakar2026covrr,<br>
+&nbsp;&nbsp;<span class="bibtex-field">title</span>     = {<span class="bibtex-val">CoVR-R: Reason-Aware Composed Video Retrieval</span>},<br>
+&nbsp;&nbsp;<span class="bibtex-field">author</span>    = {<span class="bibtex-val">Thawakar, Omkar and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Demidov, Dmitry and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Potlapalli, Vaishnav and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bogireddy, Sai Prasanna Teja Reddy and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Gajjala, Viswanatha Reddy and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lasheen, Alaa Mostafa and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Anwer, Rao Muhammad and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Khan, Fahad Shahbaz</span>},<br>
+&nbsp;&nbsp;<span class="bibtex-field">booktitle</span> = {<span class="bibtex-val">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Findings</span>},<br>
+&nbsp;&nbsp;<span class="bibtex-field">year</span>      = {<span class="bibtex-val">2026</span>}<br>
+}
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Footer ───────────────────────────────────────────────── -->
+  <footer>
+    <p style="margin-bottom: .5rem;">
+      <strong>CoVR-R: Reason-Aware Composed Video Retrieval</strong> &nbsp;·&nbsp; CVPR 2026 Findings
+    </p>
+    <p>
+      Mohamed bin Zayed University of AI &nbsp;·&nbsp; University of Chicago &nbsp;·&nbsp; Amazon &nbsp;·&nbsp; Linköping University
+    </p>
+    <p style="margin-top: .75rem;">
+      <a href="https://github.com/omkarthawakar/CoVR-R"><i class="fab fa-github"></i> GitHub</a>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="#citation">BibTeX</a>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="#overview">Back to top ↑</a>
+    </p>
+  </footer>
+
+  <!-- ─── Scripts ──────────────────────────────────────────────── -->
+  <script>
+    // Intersection Observer for fade-up animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    // Tab switching
+    function switchTab(e, id) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      e.target.classList.add('active');
+      document.getElementById(id).classList.add('active');
+    }
+
+    // Copy BibTeX
+    function copyBibtex() {
+      const raw = `@inproceedings{thawakar2026covrr,
+  title     = {CoVR-R: Reason-Aware Composed Video Retrieval},
+  author    = {Thawakar, Omkar and
+               Demidov, Dmitry and
+               Potlapalli, Vaishnav and
+               Bogireddy, Sai Prasanna Teja Reddy and
+               Gajjala, Viswanatha Reddy and
+               Lasheen, Alaa Mostafa and
+               Anwer, Rao Muhammad and
+               Khan, Fahad Shahbaz},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Findings},
+  year      = {2026}
+}`;
+      navigator.clipboard.writeText(raw).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.innerHTML = '<i class="fa fa-check"></i> Copied!';
+        setTimeout(() => { btn.innerHTML = '<i class="fa fa-copy"></i> Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
