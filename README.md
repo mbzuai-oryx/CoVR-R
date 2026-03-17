@@ -1,6 +1,7 @@
 <div align="center">
   <!-- <img src="assets/OpenEarthAgent_logo_transparent.png" alt="Logo" width="400"> -->
   <h1 align="center">CoVR-R: Reason-Aware Composed Video Retrieval</h1>
+  <h3 align="center">CVPR 2026 (Findings) 🔥</h3>
 </div>
 
 
@@ -11,7 +12,7 @@
   
 [Omkar Thawakar](https://omkarthawakar.github.io)\*, [Dmitry Demidov](https://scholar.google.com/citations?user=k3euI0sAAAAJ&hl=en)\*, [Vaishnav Potlapalli](https://scholar.google.com/citations?user=UOB0uKgAAAAJ&hl=en)\*,[Sai Prasanna Teja Reddy Bogireddy](https://scholar.google.com/citations?user=Yg5L4UkAAAAJ&hl=en)\*,[Viswanatha Reddy Gajjala](https://scholar.google.com/citations?user=9C5TEbkAAAAJ&hl=en)\*,[Alaa Mostafa Lasheen](), [Rao Muhammad Anwer](https://scholar.google.com/citations?user=_KlvMVoAAAAJ&hl=en), [Fahad Khan](https://scholar.google.com/citations?user=zvaeYnUAAAAJ&hl=en)
 
-**Mohamed bin Zayed University of Artificial Intelligence, University of Chicago, Amazon, Linköping University**
+**Mohamed bin Zayed University of Artificial Intelligence, University of Chicago, University of Wisconsin-Madison, Linköping University**
 
 <em> <sup> *Equal Contribution  </sup> </em>
 <br>
