@@ -76,10 +76,15 @@ class Record:
     target_token: str
     edit_instruction: str
     video_path: str
+    video_extension: str = ".mp4"
 
     @property
     def target_key(self) -> str:
-        return f"{self.target_token}.mp4"
+        return f"{self.target_token}{self.video_extension}"
+
+    @property
+    def reference_key(self) -> str:
+        return f"{self.reference_token}{self.video_extension}"
 
 
 def load_records(label_path: str, video_dir: str, limit: Optional[int] = None) -> List[Record]:
@@ -118,6 +123,13 @@ def _load_csv_records(path: str, video_dir: str, limit: Optional[int]) -> List[R
 def _load_json_records(path: str, video_dir: str, limit: Optional[int]) -> List[Record]:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
+
+    # Detect merged format: [{"webvid": [...]}, {"ss2": [...]}]
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        first_keys = set(data[0].keys())
+        if first_keys & {"webvid", "ss2"}:
+            return _load_merged_json_records(data, video_dir, limit)
+
     if isinstance(data, dict):
         data = list(data.values())
 
@@ -125,8 +137,8 @@ def _load_json_records(path: str, video_dir: str, limit: Optional[int]) -> List[
     for row_idx, row in enumerate(data):
         if limit is not None and len(records) >= limit:
             break
-        src = (row.get("video_source") or "").strip()
-        tgt = (row.get("video_target") or "").strip()
+        src = str(row.get("video_source") or "").strip()
+        tgt = str(row.get("video_target") or "").strip()
         edit = (row.get("modification_text") or "").strip()
 
         ref_token = os.path.basename(src).split(".")[0]
@@ -142,5 +154,40 @@ def _load_json_records(path: str, video_dir: str, limit: Optional[int]) -> List[
             target_token=tgt_token,
             edit_instruction=edit,
             video_path=video_path,
+            video_extension=ext,
         ))
+    return records
+
+
+def _load_merged_json_records(data: list, video_dir: str, limit: Optional[int]) -> List[Record]:
+    records = []
+    for section in data:
+        for section_key, entries in section.items():
+            if section_key == "webvid":
+                ext = ".mp4"
+            elif section_key == "ss2":
+                ext = ".webm"
+            else:
+                ext = ".mp4"
+
+            for row_idx, row in enumerate(entries):
+                if limit is not None and len(records) >= limit:
+                    return records
+
+                src = str(row.get("video_source", "")).strip()
+                tgt = str(row.get("video_target", "")).strip()
+                edit = (row.get("modification_text") or "").strip()
+
+                ref_token = os.path.basename(src).split(".")[0]
+                tgt_token = os.path.basename(tgt).split(".")[0]
+                video_path = os.path.join(video_dir, f"{ref_token}{ext}")
+
+                records.append(Record(
+                    index=int(row.get("id", row_idx)),
+                    reference_token=ref_token,
+                    target_token=tgt_token,
+                    edit_instruction=edit,
+                    video_path=video_path,
+                    video_extension=ext,
+                ))
     return records
