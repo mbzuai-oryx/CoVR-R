@@ -140,10 +140,10 @@ pip install -r requirements.txt
 ### CoVR-R (Reasoning Based Retrieval)
 
 ```bash
-python generate_embeddings.py --config configs/reasoning_webvid8m.yaml
-python evaluate.py --config configs/reasoning_webvid8m.yaml
-python evaluate.py --config configs/reasoning_webvid8m.yaml --reasoning_strategy self_consistency
-python evaluate.py --config configs/reasoning_webvid8m.yaml --reasoning_strategy single_stage
+python generate_embeddings.py --config configs/merged_webvid_ss2.yaml
+python evaluate.py --config configs/merged_webvid_ss2.yaml
+python evaluate.py --config configs/merged_webvid_ss2.yaml --reasoning_strategy self_consistency
+python evaluate.py --config configs/merged_webvid_ss2.yaml --reasoning_strategy single_stage
 ```
 
 ### WebVid8M
