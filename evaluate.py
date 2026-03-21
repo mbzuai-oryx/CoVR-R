@@ -289,7 +289,7 @@ def run_evaluation(cfg: Config) -> Dict[str, Any]:
 
     records = load_records(cfg.label_path, cfg.video_dir)
     available = set(embedding_store.keys())
-    records = [r for r in records if f"{r.reference_token}.mp4" in available]
+    records = [r for r in records if r.reference_key in available]
     logger.info(f"Found {len(records)} records with available reference embeddings")
 
     if cfg.limit:
@@ -349,7 +349,7 @@ def run_evaluation(cfg: Config) -> Dict[str, Any]:
     for result in all_results:
         rec = result["record"]
         target_idx = candidate_index.get(rec.target_key)
-        reference_idx = candidate_index.get(f"{rec.reference_token}.mp4")
+        reference_idx = candidate_index.get(rec.reference_key)
         if target_idx is not None and reference_idx is not None:
             query_features.append(torch.from_numpy(np.asarray(result["embedding"], dtype=np.float32)))
             gt_indices.append(target_idx)
