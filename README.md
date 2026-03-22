@@ -4,6 +4,10 @@
   <h3 align="center">CVPR 2026 (Findings) 🔥</h3>
 </div>
 
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/ArXiv-Paper-b31b1b.svg?logo=arxiv&logoColor=white" alt="ArXiv Paper"></a>
+  <a href="https://huggingface.co/datasets/omkarthawakar/CoVR-R"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-ffc107?logoColor=white" alt="HuggingFace Dataset"></a>
+</p>
 
 ![](https://i.imgur.com/waxVImv.png)
 
