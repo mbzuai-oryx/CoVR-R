@@ -1,7 +1,6 @@
 <div align="center">
   <!-- <img src="assets/OpenEarthAgent_logo_transparent.png" alt="Logo" width="400"> -->
   <h1 align="center">CoVR-R: Reason-Aware Composed Video Retrieval</h1>
-  <h3 align="center">CVPR 2026 (Findings) 🔥</h3>
 </div>
 
 <p align="center">
